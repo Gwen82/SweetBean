@@ -375,11 +375,10 @@ $menu_items = [
                     <a href="#home">Home</a>
                 </nav>
                 
-                <div class="profile-container">
-                    <input type="file" id="profileInput" accept="image/*" class="hidden-input" required>
-                    <label name="profileInput" for="profileInput" class="profile-placeholder">
+               <div class="profile-container">
+                    <a href="auth/register.php" class="profile-placeholder">
                         <i class="fa-regular fa-circle-user profile-icon"></i>
-                    </label>
+                    </a>
                 </div>
             </div>
         </header>
