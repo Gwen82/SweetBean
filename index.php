@@ -372,7 +372,7 @@ $menu_items = [
                     </div>
                     <a href="#contact">Contact</a>
                     <a href="#about">About us</a>
-                    <a href="#home">Home</a>
+                    <a href="index.php">Home</a>
                 </nav>
                 
                <div class="profile-container">

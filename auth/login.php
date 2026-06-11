@@ -1,26 +1,71 @@
 <?php
 session_start();
 
+/*
+=========================================
+DATABASE TEMPLATE (ACTIVATE LATER)
+=========================================
+
+require_once 'db.php';
+
+$stmt = $conn->prepare("
+    SELECT * FROM users
+    WHERE email = ? OR phone = ?
+");
+
+$stmt->bind_param("ss", $login_input, $login_input);
+$stmt->execute();
+
+=========================================
+*/
+
+// Temporary Data
+$users = [
+    [
+        'id' => 1,
+        'name' => 'Admin',
+        'email' => 'admin@sweetbean.com',
+        'phone' => '0123456789',
+        'password' => 'admin123',
+        'role' => 'admin'
+    ],
+    [
+        'id' => 2,
+        'name' => 'John Doe',
+        'email' => 'john@gmail.com',
+        'phone' => '0111111111',
+        'password' => '123456',
+        'role' => 'customer'
+    ]
+];
+
 $message = "";
 $message_type = "";
 
-if (!isset($_SESSION['mock_users'])) {
-    $_SESSION['mock_users'] = [];
-}
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
     $login_input = trim($_POST['login_input']);
     $password = $_POST['password'];
 
     if (empty($login_input) || empty($password)) {
+
         $message = "Please fill in all fields.";
         $message_type = "error";
+
     } else {
+
         $authenticated = false;
         $logged_in_user = null;
 
-        foreach ($_SESSION['mock_users'] as $user) {
-            if (($user['email'] === $login_input || $user['phone'] === $login_input) && $user['password'] === $password) {
+        foreach ($users as $user) {
+
+            if (
+                ($user['email'] === $login_input ||
+                 $user['phone'] === $login_input)
+                &&
+                $user['password'] === $password
+            ) {
+
                 $authenticated = true;
                 $logged_in_user = $user;
                 break;
@@ -28,14 +73,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($authenticated) {
-            $_SESSION['user_id'] = $logged_in_user['email'];
+
+            $_SESSION['user_id'] = $logged_in_user['id'];
             $_SESSION['user_name'] = $logged_in_user['name'];
             $_SESSION['user_role'] = $logged_in_user['role'];
 
-            $message = "Welcome back, " . htmlspecialchars($logged_in_user['name']) . "! Loading your menu...";
-            $message_type = "success";
-            header("refresh:1.5;url=menu.php");
+            header("Location: menu.php");
+            exit();
+
         } else {
+
             $message = "Invalid Email/Phone Number or Password.";
             $message_type = "error";
         }
@@ -115,15 +162,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             z-index: 1000;
         }
 
-        .logo-nav { 
+        /* Wrapper Kiri Navbar (Logo + Nama Brand) */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Style Khusus Gambar Logo di Navbar */
+        .logo-placeholder {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 2px 6px rgba(90, 56, 37, 0.15);
+        }
+
+        /* Teks Brand di Navbar */
+        .brand-name {
             font-family: 'Playfair Display', serif;
             font-weight: 700; 
             font-size: 1.4rem; 
             color: var(--primary-color); 
             letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .nav-links a { 
@@ -164,7 +225,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             box-sizing: border-box;
         }
 
-        /* Embedded Dynamic SVG Coffee Logo Icon */
+        /* Lingkaran Luar Container Logo di Form */
         .cafe-logo-container {
             width: 70px;
             height: 70px;
@@ -175,12 +236,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             justify-content: center;
             align-items: center;
             box-shadow: 0 8px 20px rgba(90, 56, 37, 0.2);
+            overflow: hidden; /* Memastikan gambar terpotong bulat rapi */
         }
 
-        .cafe-logo-container svg {
-            width: 38px;
-            height: 38px;
-            fill: #faf9f6;
+        /* Style Gambar Logo di Form Login */
+        .cafe-logo-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         h2 { 
@@ -315,32 +379,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
-    <!-- Synced Cafe Navigation Bar -->
     <div class="navbar">
-        <div class="logo-nav">
-            <!-- Inline Mini Logo for Header -->
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5a3825" xmlns="http://www.w3.org/2000/svg"><path d="M2 21h18v-2H2v2zM20 8h-2V5h2v3zm2-5H2v11c0 2.21 1.79 4 4 4h10c2.21 0 4-1.79 4-4v-3h2c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-            Sweet Bean Cafe
+        <div class="header-left">
+            <img src="../assets/LOGO.jpg" alt="Sweet Bean Coffee Logo" class="logo-placeholder" />
+            <span class="brand-name">Sweet Bean Coffee</span>
         </div>
         <div class="nav-links">
             <a href="#">Contact</a>
             <a href="#">About us</a>
-            <a href="#">Home</a>
+            <a href="../index.php">Home</a>
         </div>
     </div>
 
     <div class="wrapper">
         <div class="login-box">
             
-            <!-- Graphic Coffee Cup Logo Embedded Safely inside the card Frame -->
             <div class="cafe-logo-container">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2 21h18v-2H2v2zM20 8h-2V5h2v3zm2-5H2v11c0 2.21 1.79 4 4 4h10c2.21 0 4-1.79 4-4v-3h2c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM4 5h12v9c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V5z"/>
-                </svg>
+                <img src="../assets/LOGO.jpg" alt="Logo Cafe" />
             </div>
 
             <h2>Welcome Back</h2>
-            <div class="subtitle">Log in to manage your orders[cite: 1]</div>
+            <div class="subtitle">Log in to manage your orders</div>
             
             <?php if(!empty($message)): ?>
                 <div class="msg <?php echo $message_type; ?>">
@@ -360,7 +419,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
 
                 <div class="form-actions">
-                    <a href="#" class="forgot-link">Forget password? Reset Password</a>
+                    <a href="forget_password.php" class="forgot-link">Forget password? Reset Password</a>
                 </div>
                 
                 <button type="submit" class="btn-login">Log In</button>

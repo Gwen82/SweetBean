@@ -1,53 +1,109 @@
 <?php
-// Start the session to store our temporary "database" of users
 session_start();
 
-// Initialize our temporary user storage if it doesn't exist yet
+/*
+=================================================
+DATABASE TEMPLATE (ENABLE LATER)
+=================================================
+
+require_once 'db.php';
+
+INSERT INTO users (
+    name,
+    email,
+    phone,
+    birth_date,
+    password,
+    role
+)
+
+=================================================
+*/
+
+// Temporary User Storage
 if (!isset($_SESSION['mock_users'])) {
-    $_SESSION['mock_users'] = [];
+
+    $_SESSION['mock_users'] = [
+
+        [
+            'id' => 1,
+            'name' => 'Admin',
+            'email' => 'admin@sweetbean.com',
+            'phone' => '0123456789',
+            'birth_date' => '2000-01-01',
+            'password' => 'admin123',
+            'role' => 'admin'
+        ]
+    ];
 }
 
 $message = "";
-$message_type = ""; 
+$message_type = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
     $birth_date = $_POST['birth_date'];
     $password = $_POST['password'];
 
-    if (empty($name) || empty($email) || empty($phone) || empty($birth_date) || empty($password)) {
+    if (
+        empty($name) ||
+        empty($email) ||
+        empty($phone) ||
+        empty($birth_date) ||
+        empty($password)
+    ) {
+
         $message = "All fields are required!";
         $message_type = "error";
+
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
         $message = "Please enter a valid email address.";
         $message_type = "error";
+
     } else {
+
         $user_exists = false;
+
         foreach ($_SESSION['mock_users'] as $user) {
-            if ($user['email'] === $email || $user['phone'] === $phone) {
+
+            if (
+                $user['email'] === $email ||
+                $user['phone'] === $phone
+            ) {
+
                 $user_exists = true;
                 break;
             }
         }
 
         if ($user_exists) {
+
             $message = "This email or phone number is already registered.";
             $message_type = "error";
+
         } else {
-            $_SESSION['mock_users'][] = [
+
+            $new_user = [
+
+                'id' => count($_SESSION['mock_users']) + 1,
                 'name' => $name,
                 'email' => $email,
                 'phone' => $phone,
                 'birth_date' => $birth_date,
-                'password' => $password, 
-                'role' => 'customer' 
+                'password' => $password,
+                'role' => 'customer'
             ];
+
+            $_SESSION['mock_users'][] = $new_user;
 
             $message = "Account created successfully! Redirecting to login...";
             $message_type = "success";
-            header("refresh:2;url=login.php");
+
+            header("Refresh:2; url=login.php");
         }
     }
 }
@@ -59,7 +115,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sweet Bean Cafe - Create Account</title>
-    <!-- Importing modern clean fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -75,13 +130,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         body { 
             font-family: 'Poppins', sans-serif; 
-            background-color: var(--bg-color); 
+            background: linear-gradient(135deg, #f5efe6 0%, #e6dcd0 50%, #d7c4b7 100%);
+            position: relative;
             color: var(--text-main);
             margin: 0; 
             padding: 0; 
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Decorative background elements for depth */
+        body::before, body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.5;
+        }
+        body::before {
+            width: 300px;
+            height: 300px;
+            background: #eddcd2;
+            top: -50px;
+            left: -50px;
+        }
+        body::after {
+            width: 400px;
+            height: 400px;
+            background: #cb997e;
+            bottom: -100px;
+            right: -50px;
         }
 
         /* Elegant Navbar Grid */
@@ -90,9 +171,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             justify-content: space-between; 
             align-items: center;
             padding: 20px 40px; 
-            background: rgba(255, 255, 255, 0.8); 
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(90, 56, 37, 0.08); 
+            background: rgba(255, 255, 255, 0.4); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5); 
             position: fixed;
             top: 0;
             left: 0;
@@ -100,7 +182,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             z-index: 1000;
         }
 
-        .logo { 
+        /* Wrapper Kiri Navbar (Logo + Nama Brand) */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Style Khusus Gambar Logo di Navbar */
+        .logo-placeholder {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 2px 6px rgba(90, 56, 37, 0.15);
+            display: block;
+        }
+
+        /* Teks Brand di Navbar */
+        .brand-name {
             font-family: 'Playfair Display', serif;
             font-weight: 700; 
             font-size: 1.4rem; 
@@ -113,12 +213,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             text-decoration: none; 
             color: var(--text-main); 
             font-size: 0.95rem;
-            font-weight: 400;
+            font-weight: 500;
             transition: color 0.3s ease;
         }
 
         .nav-links a:hover { 
-            color: var(--accent-color); 
+            color: var(--primary-color); 
         }
 
         /* Container & Card Layout */
@@ -127,70 +227,104 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 100px 20px 40px 20px; /* offset for fixed navbar */
+            padding: 130px 20px 60px 20px; /* offset for fixed navbar */
+            z-index: 1;
         }
 
+        /* Frosted Glassmorphism Box */
         .register-box { 
-            background: var(--card-bg); 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(16px) saturate(120%);
+            -webkit-backdrop-filter: blur(16px) saturate(120%);
             padding: 40px; 
-            border-radius: 24px; 
-            box-shadow: 0 10px 35px rgba(90, 56, 37, 0.06); 
+            border-radius: 32px; 
+            box-shadow: 0 20px 50px rgba(90, 56, 37, 0.12); 
             width: 100%;
             max-width: 420px; 
             text-align: center; 
-            border: 1px solid rgba(90, 56, 37, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             box-sizing: border-box;
+        }
+
+        /* Lingkaran Luar Container Logo di Form */
+        .cafe-logo-container {
+            width: 70px;
+            height: 70px;
+            background: var(--primary-color);
+            margin: 0 auto 16px auto;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(90, 56, 37, 0.2);
+            overflow: hidden; /* Memastikan gambar terpotong bulat rapi */
+        }
+
+        /* Menjaga link di dalam kontainer logo mengisi ruang penuh */
+        .cafe-logo-container a {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Style Gambar Logo di Form */
+        .cafe-logo-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         h2 { 
             font-family: 'Playfair Display', serif;
             color: var(--primary-color); 
-            font-size: 2.1rem;
+            font-size: 2.2rem;
             margin-top: 0;
-            margin-bottom: 8px; 
+            margin-bottom: 6px; 
         }
 
         .subtitle {
             color: var(--text-muted);
             font-size: 0.9rem;
-            margin-bottom: 30px;
+            margin-bottom: 32px;
+            font-weight: 400;
         }
 
         /* Input Customizations */
         .form-group { 
-            margin-bottom: 20px; 
+            margin-bottom: 22px; 
             text-align: left; 
             position: relative;
         }
 
         .form-group label {
             display: block;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
         .form-group input { 
             width: 100%; 
-            padding: 14px 16px; 
-            border: 1.5px solid #e6e2dc; 
-            background-color: #faf9f6;
+            padding: 14px 18px; 
+            border: 1.5px solid rgba(140, 118, 107, 0.25); 
+            background-color: rgba(255, 255, 255, 0.6);
             color: var(--text-main);
-            border-radius: 12px; 
+            border-radius: 14px; 
             font-family: 'Poppins', sans-serif;
             font-size: 0.95rem;
             box-sizing: border-box; 
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .form-group input:focus {
             outline: none;
             border-color: var(--primary-color);
             background-color: #fff;
-            box-shadow: 0 0 0 4px rgba(90, 56, 37, 0.1);
+            box-shadow: 0 0 0 4px rgba(90, 56, 37, 0.12);
         }
 
         /* Subtle Fix for Native Date Picker Alignment */
@@ -201,56 +335,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         /* Buttons & Dynamic Messages */
         .btn-create { 
             width: 100%; 
-            padding: 14px; 
+            padding: 15px; 
             background: var(--primary-color); 
-            color: white; 
+            color: #faf9f6; 
             border: none; 
-            border-radius: 12px; 
+            border-radius: 14px; 
             font-family: 'Poppins', sans-serif;
             font-size: 1rem; 
             font-weight: 500;
             cursor: pointer; 
-            margin-top: 10px;
-            transition: background 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 12px rgba(90, 56, 37, 0.15);
+            transition: all 0.3s ease;
         }
 
         .btn-create:hover { 
             background: var(--primary-hover); 
+            box-shadow: 0 6px 20px rgba(90, 56, 37, 0.25);
+            transform: translateY(-1px);
         }
 
         .btn-create:active {
-            transform: scale(0.98);
+            transform: translateY(1px);
+            box-shadow: 0 3px 8px rgba(90, 56, 37, 0.15);
         }
 
         .msg { 
             margin-bottom: 24px; 
             font-size: 0.9rem;
-            font-weight: 400; 
             padding: 12px 16px; 
-            border-radius: 12px; 
+            border-radius: 14px; 
             text-align: left;
             animation: fadeIn 0.4s ease;
         }
         
-        .msg.error { 
-            color: #842029; 
-            background-color: #f8d7da; 
-            border: 1px solid #f5c2c7; 
-        }
-        
-        .msg.success { 
-            color: #0f5132; 
-            background-color: #d1e7dd; 
-            border: 1px solid #badbcc; 
-        }
+        .msg.error { color: #842029; background-color: #f8d7da; border: 1px solid #f5c2c7; }
+        .msg.success { color: #0f5132; background-color: #d1e7dd; border: 1px solid #badbcc; }
 
         .login-link { 
-            margin-top: 24px; 
+            margin-top: 26px; 
             display: inline-block; 
             font-size: 0.9rem; 
             color: var(--primary-color); 
             text-decoration: none; 
-            font-weight: 500;
+            font-weight: 600;
             transition: color 0.3s ease;
         }
 
@@ -267,19 +394,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
-    <!-- Header navigation layer matching wireframe criteria -->
     <div class="navbar">
-        <div class="logo">Sweet Bean Cafe</div>
+        <div class="header-left">
+            <img src="../assets/LOGO.jpg" alt="Sweet Bean Coffee Logo" class="logo-placeholder" />
+            <span class="brand-name">Sweet Bean Coffee</span>
+        </div>
         <div class="nav-links">
             <a href="#">Contact</a>
             <a href="#">About us</a>
-            <a href="#">Home</a>
+            <a href="../index.php">Home</a>
         </div>
     </div>
 
-    <!-- Main Registration Window -->
     <div class="wrapper">
         <div class="register-box">
+            <div class="cafe-logo-container">
+                <img src="../assets/LOGO.jpg" alt="Logo Cafe" />
+            </div>
             <h2>Create Account</h2>
             <div class="subtitle">Join us to explore fresh coffee & cakes</div>
             
