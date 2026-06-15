@@ -1,496 +1,348 @@
 <?php
-require_once __DIR__ . '/config/session.php';
-
-$menu_items = [
-    ["id" => "classic_espresso", "name" => "Classic Espresso", "price" => 110, "tag" => "Drinks"]
-];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_to_cart') {
-    $itemId = $_POST['item_id'] ?? '';
-    $selectedItem = null;
-
-    foreach ($menu_items as $item) {
-        if ($item['id'] === $itemId) {
-            $selectedItem = $item;
-            break;
-        }
-    }
-
-    header('Content-Type: application/json');
-
-    if (!$selectedItem) {
-        echo json_encode(['success' => false, 'message' => 'Menu item not found.']);
-        exit;
-    }
-
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
-
-    if (isset($_SESSION['cart'][$itemId])) {
-        $_SESSION['cart'][$itemId]['qty'] += 1;
-    } else {
-        $_SESSION['cart'][$itemId] = [
-            'name' => $selectedItem['name'],
-            'price' => $selectedItem['price'],
-            'qty' => 1
-        ];
-    }
-
-    $cartCount = array_sum(array_column($_SESSION['cart'], 'qty'));
-    echo json_encode(['success' => true, 'cart_count' => $cartCount]);
-    exit;
-}
-
-$cart_count = isset($_SESSION['cart']) ? array_sum(array_column($_SESSION['cart'], 'qty')) : 0;
+session_start();
 ?>
-
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sweet Bean Coffee - Premium Menu</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #6f4e37;
-            --primary-hover: #5a3d2a;
-            --bg-color: #fdfaf7;
-            --card-bg: #ffffff;
-            --text-main: #2d2219;
-            --accent-color: #e6ccb2;
-            --cart-count: "0"; /* Handled dynamically by CSS/JS later */
-        }
+    <title>Sweet Bean Coffee</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
+    <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 30px 15px;
+            background-color: #FBF9F6; /* Warna cream-white super lembut ala café Jepang */
+            color: #3E362E; /* Cokelat sangat gelap, lebih premium dibanding hitam pekat */
+            line-height: 1.7;
         }
 
-        .main-wrapper {
-            max-width: 1280px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(111, 78, 55, 0.08);
-            overflow: hidden;
-            border: 1px solid rgba(111, 78, 55, 0.05);
-        }
-
-        /* --- Header Upgrades --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 25px 50px;
-            border-bottom: 1px solid rgba(111, 78, 55, 0.1);
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-left, .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .logo-placeholder {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            background-image: url('logo.jpg'); /* Your custom logo image */
-            background-size: cover;
-            background-position: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            border: 2px solid var(--primary-color);
-        }
-
-        .brand-name {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            letter-spacing: -0.5px;
-        }
-
-        nav {
-            display: flex;
-            align-items: center;
-            gap: 35px;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: var(--text-main);
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: color 0.2s, transform 0.2s;
-        }
-
-        nav a:hover {
-            color: var(--primary-color);
-            transform: translateY(-1px);
-        }
-
-        /* Upgraded Shopping Cart Icon with Badge Counter */
-        .cart-wrapper {
-            position: relative;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        .cart-icon {
-            font-size: 1.4rem;
-            color: var(--text-main);
-            transition: color 0.2s;
-        }
-
-        .cart-wrapper::after {
-            content: var(--cart-count);
-            position: absolute;
-            top: -5px;
-            right: -8px;
-            background: #de4e4e;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* Upgraded Profile input/label combo (No JS) */
-        .profile-container {
-            position: relative;
-        }
-
-        .hidden-input {
-            display: none;
-        }
-
-        .profile-placeholder {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background-color: #f0e6df;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(111, 78, 55, 0.2);
-            overflow: hidden;
-        }
-
-        .profile-placeholder:hover {
-            transform: scale(1.05);
-            background-color: var(--accent-color);
-        }
-
-        .profile-icon {
-            font-size: 1.4rem;
-            color: var(--primary-color);
-        }
-
-        /* CSS magic hiding icon when file uploaded */
-        .hidden-input:valid ~ .profile-placeholder .profile-icon {
-            display: none;
-        }
-        .hidden-input:valid ~ .profile-placeholder::after {
-            content: "\f00c"; /* FontAwesome Checkmark */
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            color: #2b8a3e;
-            font-size: 1.1rem;
-        }
-
-        /* --- Main / Menu Section --- */
-        main {
-            padding: 50px;
-        }
-
-        .page-title {
-            text-align: center;
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: var(--text-main);
-        }
-
-        .page-subtitle {
-            text-align: center;
-            color: #8c7a6b;
-            font-size: 1rem;
-            margin-bottom: 40px;
-        }
-
-        /* --- Modern Segmented Control Filter Tabs --- */
-        .filter-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 50px;
-            background: #f5ebe0;
-            padding: 8px;
-            border-radius: 16px;
-            max-width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .tab-btn {
-            background: transparent;
-            border: none;
-            padding: 10px 24px;
-            font-size: 0.9rem;
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
             font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            color: #6f5d50;
-            transition: all 0.2s ease;
+            color: #2A1A0F;
         }
 
-        .tab-btn.active, .tab-btn:hover {
-            background-color: var(--card-bg);
-            color: var(--primary-color);
-            box-shadow: 0 4px 12px rgba(111, 78, 55, 0.1);
+        /* Container Pembatas */
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        /* --- Grid & Modern Cards --- */
+        /* 1. HERO SECTION */
+        .hero-section {
+            padding: 100px 0 60px 0;
+            text-align: center;
+        }
+
+        .hero-badge {
+            background: #EFEAE4;
+            color: #8B5E3C;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 25px;
+        }
+
+        .hero-title {
+            font-size: 56px;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+
+        .hero-title em {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: #8B5E3C;
+            font-weight: 400;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #70655B;
+            max-width: 580px;
+            margin: 0 auto 40px auto;
+            font-weight: 300;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 16px 40px;
+            background: #2A1A0F;
+            color: #FFF;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 500;
+            font-size: 15px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 10px 25px rgba(42, 26, 15, 0.15);
+        }
+
+        .btn-primary:hover {
+            background: #8B5E3C;
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px rgba(139, 94, 60, 0.25);
+        }
+
+        /* 2. FEATURED PRODUCTS (GRID SYSTEM) */
+        .featured-section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+
+        .section-header p {
+            color: #8B5E3C;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+        }
+
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
         }
 
-        .product-card {
-            background: var(--card-bg);
-            border-radius: 20px;
+        .menu-card {
+            background: #FFF;
+            border-radius: 24px;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid rgba(111, 78, 55, 0.08);
-            box-shadow: 0 4px 15px rgba(111, 78, 55, 0.03);
-            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(139, 94, 60, 0.03);
+            border: 1px solid rgba(139, 94, 60, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .product-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 25px rgba(111, 78, 55, 0.1);
-        }
-
-        /* Styled Placeholder Graphic Box */
-        .image-container {
-            aspect-ratio: 1 / 1;
-            background: #faf6f2;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #dcd0c4;
-        }
-
-        /* Faded decorative background X inside the item box */
-        .image-container::before, .image-container::after {
-            content: "";
-            position: absolute;
+        .menu-img-wrapper {
             width: 100%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(111,78,55,0.08), transparent);
-        }
-        .image-container::before { transform: rotate(45deg); }
-        .image-container::after { transform: rotate(-45deg); }
-
-        .image-container i.coffee-icon {
-            font-size: 2.5rem;
-            z-index: 1;
-            opacity: 0.6;
+            height: 240px;
+            overflow: hidden;
+            position: relative;
         }
 
-        .product-info {
-            padding: 18px;
-            text-align: left;
+        .menu-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .menu-info {
+            padding: 30px;
+        }
+
+        .menu-info h3 {
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .menu-info p {
+            color: #70655B;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        /* Card Hover Effect */
+        .menu-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(139, 94, 60, 0.08);
+            border-color: rgba(139, 94, 60, 0.15);
+        }
+
+        .menu-card:hover .menu-img-wrapper img {
+            transform: scale(1.08);
+        }
+
+        /* 3. ABOUT SECTION */
+        .about-section {
+            background: #F3ECE4; /* Warna cokelat susu sangat pastel */
+            padding: 120px 0;
+            border-radius: 60px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .about-content {
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .about-content h2 {
+            font-size: 40px;
+            margin-bottom: 25px;
+        }
+
+        .about-content p {
+            font-size: 17px;
+            color: #554C43;
+            font-weight: 300;
+            line-height: 1.9;
+        }
+
+        /* 4. CONTACT SECTION */
+        .contact-section {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .contact-grid {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex-grow: 1;
-        }
-
-        .product-tag {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #a88770;
-            letter-spacing: 0.5px;
-        }
-
-        .product-name {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .product-price {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-top: auto;
-            padding-top: 8px;
-        }
-
-        /* Modernized Elegant Add Button */
-        .add-cart-btn {
-            width: calc(100% - 36px);
-            margin: 0 auto 18px auto;
-            padding: 12px;
-            background: #fcf8f5;
-            border: 1px solid rgba(111, 78, 55, 0.15);
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 40px;
         }
 
-        .add-cart-btn:hover {
-            background: var(--primary-color);
-            color: #ffffff;
-            border-color: var(--primary-color);
+        .contact-card {
+            background: #FFF;
+            padding: 25px 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,0,0,0.03);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.01);
+            width: 280px;
         }
 
-        /* --- Responsive Viewports --- */
-        @media (max-width: 1200px) {
-            .menu-grid { grid-template-columns: repeat(4, 1fr); }
+        .contact-card span {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8B5E3C;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
         }
-        @media (max-width: 992px) {
-            .menu-grid { grid-template-columns: repeat(3, 1fr); }
-            header { padding: 20px 30px; }
+
+        .contact-card p {
+            font-size: 15px;
+            color: #2A1A0F;
+            font-weight: 500;
         }
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 20px; }
-            .menu-grid { grid-template-columns: repeat(2, 1fr); }
-            main { padding: 30px 15px; }
-        }
-        @media (max-width: 480px) {
-            .menu-grid { grid-template-columns: 1fr; }
-            nav { gap: 15px; }
+
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            font-size: 13px;
+            color: #A0948A;
+            border-top: 1px solid #EFEAE4;
         }
     </style>
 </head>
+
 <body>
 
-    <div class="main-wrapper">
-        
-        <header>
-            <div class="header-left">
-                <img src="assets/LOGO.jpg" alt="Sweet Bean Coffee Logo" class="logo-placeholder"></img>
-                <span class="brand-name">Sweet Bean Coffee</span>
-            </div>
-            <div class="header-right">
-                <nav>
-                    <div class="cart-wrapper" id="cartBtn">
-                        <i class="fa-solid fa-bag-shopping cart-icon"></i>
-                    </div>
-                    <a href="#contact">Contact</a>
-                    <a href="#about">About us</a>
-                    <a href="index.php">Home</a>
-                </nav>
-                
-               <div class="profile-container">
-                    <a href="auth/register.php" class="profile-placeholder">
-                        <i class="fa-regular fa-circle-user profile-icon"></i>
-                    </a>
-                </div>
-            </div>
-        </header>
+    <?php include 'navbar.php'; ?>
 
-        <main id="menu">
-            <h1 class="page-title">Our Menu</h1>
-            <p class="page-subtitle">Freshly roasted coffee and homemade treats delivered to your table.</p>
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-badge">Premium Coffee Experience</div>
+            <h1 class="hero-title">Where every bean tells a <br><em>beautiful story</em></h1>
+            <p class="hero-subtitle">
+                Awaken your senses with our artisanal coffee, handcrafted pastries, and a seamless digital café experience.
+            </p>
+            <a href="customer/menu.php" class="btn-primary">Explore Our Menu</a>
+        </div>
+    </section>
 
-            <div class="filter-tabs">
-                <button class="tab-btn active">ALL</button>
-                <button class="tab-btn">Best Seller</button>
-                <button class="tab-btn">Drinks</button>
-                <button class="tab-btn">Cakes</button>
-                <button class="tab-btn">Pastries</button>
+    <section class="featured-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our Seasonal Favorites</h2>
+                <p>Meticulously crafted, just for you</p>
             </div>
 
             <div class="menu-grid">
-                <?php foreach ($menu_items as $item): ?>
-                    <div class="product-card">
-                        <div class="image-container">
-                            <i class="fa-solid fa-mug-hot coffee-icon"></i>
-                        </div>
-                        <div class="product-info">
-                            <span class="product-tag"><?php echo htmlspecialchars($item['tag']); ?></span>
-                            <span class="product-name"><?php echo htmlspecialchars($item['name']); ?></span>
-                            <span class="product-price">NT$ <?php echo number_format($item['price']); ?></span>
-                        </div>
-                        <button class="add-cart-btn" onclick="addToCart('<?php echo htmlspecialchars($item['id']); ?>')">
-                            <i class="fa-solid fa-plus"></i> Add to Cart
-                        </button>
+                <div class="menu-card">
+                    <div class="menu-img-wrapper">
+                        <img src="https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Creamy Latte">
                     </div>
-                <?php endforeach; ?>
+                    <div class="menu-info">
+                        <h3>Velvet Latte</h3>
+                        <p>Rich espresso blended with silky smooth steamed milk and a hint of vanilla sweetness.</p>
+                    </div>
+                </div>
+
+                <div class="menu-card">
+                    <div class="menu-img-wrapper">
+                        <img src="https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Cheesecake">
+                    </div>
+                    <div class="menu-info">
+                        <h3>Classic Basque</h3>
+                        <p>Rich, creamy baked cheesecake with a beautifully caramelized burnt top crust.</p>
+                    </div>
+                </div>
+
+                <div class="menu-card">
+                    <div class="menu-img-wrapper">
+                        <img src="https://images.pexels.com/photos/372851/pexels-photo-372851.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Croissant">
+                    </div>
+                    <div class="menu-info">
+                        <h3>Butter Croissant</h3>
+                        <p>Flaky, golden layers of French butter pastry baked fresh every single morning.</p>
+                    </div>
+                </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </section>
 
-    <script>
-        let count = <?php echo (int) $cart_count; ?>;
-        document.documentElement.style.setProperty('--cart-count', `"${count}"`);
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <h2>The Sweet Bean Way</h2>
+                <p>
+                    Born out of a simple love for slow mornings and rich aromas, Sweet Bean Coffee is a sanctuary for coffee enthusiasts. We source our beans ethically from single-origin farms and roast them to perfection. Combined with our artisan bakes, we invite you to take a pause, take a sip, and savor the moment.
+                </p>
+            </div>
+        </div>
+    </section>
 
-        document.getElementById('cartBtn').addEventListener('click', function() {
-            window.location.href = 'customer/customer_cart.php';
-        });
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2>Let's Connect</h2>
+            <p style="color: #70655B; font-weight: 300;">We'd love to hear from you. Visit us or drop a message!</p>
+            
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <span>Email Support</span>
+                    <p>hello@sweetbean.com</p>
+                </div>
+                <div class="contact-card">
+                    <span>Our Phone</span>
+                    <p>0912-345-678</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        function addToCart(itemId) {
-            const formData = new FormData();
-            formData.append('action', 'add_to_cart');
-            formData.append('item_id', itemId);
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Sweet Bean Coffee. Made with love for premium tastes.</p>
+        </div>
+    </footer>
 
-            fetch('index.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    alert(data.message || 'Unable to add item to cart.');
-                    return;
-                }
-
-                count = data.cart_count;
-                document.documentElement.style.setProperty('--cart-count', `"${count}"`);
-            })
-            .catch(() => {
-                alert('Unable to add item to cart. Please try again.');
-            });
-        }
-
-        function increaseCart() {
-            count++;
-            document.documentElement.style.setProperty('--cart-count', `"${count}"`);
-        }
-    </script>
 </body>
+
 </html>

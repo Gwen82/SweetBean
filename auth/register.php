@@ -1,17 +1,52 @@
 <?php
-require_once __DIR__ . '/../config/session.php';
-require_once __DIR__ . '/../config/db.php';
+session_start();
+
+/*
+=================================================
+DATABASE TEMPLATE (ENABLE LATER)
+=================================================
+
+require_once 'db.php';
+
+INSERT INTO users (
+    name,
+    email,
+    phone,
+    birth_date,
+    password,
+    role
+)
+
+=================================================
+*/
+
+// Temporary User Storage
+if (!isset($_SESSION['mock_users'])) {
+
+    $_SESSION['mock_users'] = [
+
+        [
+            'id' => 1,
+            'name' => 'Admin',
+            'email' => 'admin@sweetbean.com',
+            'phone' => '0123456789',
+            'birth_date' => '2000-01-01',
+            'password' => 'admin123',
+            'role' => 'admin'
+        ]
+    ];
+}
 
 $message = "";
 $message_type = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $name = trim($_POST['name'] ?? '');
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    $phone = trim($_POST['phone'] ?? '');
-    $birth_date = $_POST['birth_date'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $birth_date = $_POST['birth_date'];
+    $password = $_POST['password'];
 
     if (
         empty($name) ||
@@ -29,43 +64,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $message = "Please enter a valid email address.";
         $message_type = "error";
 
-    } elseif (strlen($password) < 6) {
-
-        $message = "Password must be at least 6 characters long.";
-        $message_type = "error";
-
     } else {
 
-        $stmt = $conn->prepare("
-            SELECT id
-            FROM sweetbean_users
-            WHERE email = :email OR phone = :phone
-            LIMIT 1
-        ");
-        $stmt->execute([
-            ':email' => $email,
-            ':phone' => $phone
-        ]);
+        $user_exists = false;
 
-        if ($stmt->fetch()) {
+        foreach ($_SESSION['mock_users'] as $user) {
+
+            if (
+                $user['email'] === $email ||
+                $user['phone'] === $phone
+            ) {
+
+                $user_exists = true;
+                break;
+            }
+        }
+
+        if ($user_exists) {
 
             $message = "This email or phone number is already registered.";
             $message_type = "error";
 
         } else {
 
-            $stmt = $conn->prepare("
-                INSERT INTO sweetbean_users (full_name, email, phone, birth_date, password, role)
-                VALUES (:full_name, :email, :phone, :birth_date, :password, :role)
-            ");
-            $stmt->execute([
-                ':full_name' => $name,
-                ':email' => $email,
-                ':phone' => $phone,
-                ':birth_date' => $birth_date,
-                ':password' => password_hash($password, PASSWORD_DEFAULT),
-                ':role' => 'customer'
-            ]);
+            $new_user = [
+
+                'id' => count($_SESSION['mock_users']) + 1,
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'birth_date' => $birth_date,
+                'password' => $password,
+                'role' => 'customer'
+            ];
+
+            $_SESSION['mock_users'][] = $new_user;
 
             $message = "Account created successfully! Redirecting to login...";
             $message_type = "success";
@@ -120,7 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         body::before {
             width: 300px;
             height: 300px;
-            background: #eddcd2;
+            background: #cb997e;
             top: -50px;
             left: -50px;
         }
@@ -132,69 +165,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             right: -50px;
         }
 
-        /* Elegant Navbar Grid */
-        .navbar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            padding: 20px 40px; 
-            background: rgba(255, 255, 255, 0.4); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5); 
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-
-        /* Wrapper Kiri Navbar (Logo + Nama Brand) */
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Style Khusus Gambar Logo di Navbar */
-        .logo-placeholder {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 2px 6px rgba(90, 56, 37, 0.15);
-            display: block;
-        }
-
-        /* Teks Brand di Navbar */
-        .brand-name {
-            font-family: 'Playfair Display', serif;
-            font-weight: 700; 
-            font-size: 1.4rem; 
-            color: var(--primary-color); 
-            letter-spacing: 0.5px;
-        }
-
-        .nav-links a { 
-            margin-left: 28px; 
-            text-decoration: none; 
-            color: var(--text-main); 
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover { 
-            color: var(--primary-color); 
-        }
-
         /* Container & Card Layout */
         .wrapper {
             flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 130px 20px 60px 20px; /* offset for fixed navbar */
+            padding: 45px 20px 60px 20px; /* offset for fixed navbar */
             z-index: 1;
         }
 
@@ -224,14 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             justify-content: center;
             align-items: center;
             box-shadow: 0 8px 20px rgba(90, 56, 37, 0.2);
-            overflow: hidden; /* Memastikan gambar terpotong bulat rapi */
-        }
-
-        /* Menjaga link di dalam kontainer logo mengisi ruang penuh */
-        .cafe-logo-container a {
-            display: block;
-            width: 100%;
-            height: 100%;
+            overflow: hidden; 
         }
 
         /* Style Gambar Logo di Form */
@@ -294,7 +264,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             box-shadow: 0 0 0 4px rgba(90, 56, 37, 0.12);
         }
 
-        /* Subtle Fix for Native Date Picker Alignment */
         .form-group input[type="date"] {
             color: var(--text-main);
         }
@@ -360,19 +329,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </style>
 </head>
 <body>
-
-    <div class="navbar">
-        <div class="header-left">
-            <img src="../assets/LOGO.jpg" alt="Sweet Bean Coffee Logo" class="logo-placeholder" />
-            <span class="brand-name">Sweet Bean Coffee</span>
-        </div>
-        <div class="nav-links">
-            <a href="#">Contact</a>
-            <a href="#">About us</a>
-            <a href="../index.php">Home</a>
-        </div>
-    </div>
-
+    
+    <?php include '../navbar.php'; ?>
+    
     <div class="wrapper">
         <div class="register-box">
             <div class="cafe-logo-container">
@@ -410,7 +369,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" name="password" placeholder="********" required autocomplete="new-password">
+                    <input type="password" name="password" placeholder="••••••••" required autocomplete="new-password">
                 </div>
                 
                 <button type="submit" class="btn-create">Create Account</button>

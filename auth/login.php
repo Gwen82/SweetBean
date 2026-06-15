@@ -33,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_name'] = $logged_in_user['full_name'];
             $_SESSION['user_role'] = $logged_in_user['role'];
 
-            header("Location: ../index.php");
+            header("Location: ../customer/menu.php");
             exit();
 
         } else {
@@ -98,61 +98,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background: #cb997e;
             bottom: -100px;
             right: -50px;
-        }
-
-        /* Elegant Transparent Navbar */
-        .navbar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            padding: 20px 40px; 
-            background: rgba(255, 255, 255, 0.4); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5); 
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-
-        /* Wrapper Kiri Navbar (Logo + Nama Brand) */
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Style Khusus Gambar Logo di Navbar */
-        .logo-placeholder {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 2px 6px rgba(90, 56, 37, 0.15);
-        }
-
-        /* Teks Brand di Navbar */
-        .brand-name {
-            font-family: 'Playfair Display', serif;
-            font-weight: 700; 
-            font-size: 1.4rem; 
-            color: var(--primary-color); 
-            letter-spacing: 0.5px;
-        }
-
-        .nav-links a { 
-            margin-left: 28px; 
-            text-decoration: none; 
-            color: var(--text-main); 
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover { 
-            color: var(--primary-color); 
         }
 
         /* Container Layout */
@@ -334,17 +279,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 
-    <div class="navbar">
-        <div class="header-left">
-            <img src="../assets/LOGO.jpg" alt="Sweet Bean Coffee Logo" class="logo-placeholder" />
-            <span class="brand-name">Sweet Bean Coffee</span>
-        </div>
-        <div class="nav-links">
-            <a href="#">Contact</a>
-            <a href="#">About us</a>
-            <a href="../index.php">Home</a>
-        </div>
-    </div>
+    <?php include __DIR__ . '/../navbar.php'; ?>
 
     <div class="wrapper">
         <div class="login-box">
@@ -370,7 +305,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" name="password" placeholder="********" required autocomplete="current-password">
+                    <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
 
                 <div class="form-actions">
