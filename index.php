@@ -1,4 +1,3 @@
-/*blom mskin database*/
 <?php 
 $menu_items = [
     ["name" => "Classic Espresso", "price" => "$3.50", "tag" => "Drinks"]
