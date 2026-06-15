@@ -29,8 +29,13 @@ try {
     }
 
     // 2. Fetch linked relational line items from order_items
-    // Adjust column references if your menu table fields differ
-    $stmtItems = $conn->prepare("SELECT oi.*, menu_id as item_name FROM order_items oi WHERE oi.order_id = ?");
+    $stmtItems = $conn->prepare("
+        SELECT oi.*, COALESCE(mi.name, oi.menu_id) AS item_name
+        FROM order_items oi
+        LEFT JOIN menu_items mi ON mi.id = oi.menu_id
+        WHERE oi.order_id = ?
+        ORDER BY oi.id
+    ");
     $stmtItems->execute([$order_id]);
     $items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
 
@@ -311,7 +316,7 @@ if ($activeIndex === false) { $activeIndex = 0; } // Fallback safe fallback
                 <?php foreach ($items as $item): ?>
                     <div class="item-row">
                         <div>
-                            <span>Menu Item ID: #<?php echo $item['menu_id']; ?></span>
+                            <span><?php echo htmlspecialchars($item['item_name']); ?></span>
                             <span style="color:#888; margin-left: 10px;">x<?php echo $item['qty']; ?></span>
                         </div>
                         <strong>NT$ <?php echo number_format($item['price'] * $item['qty'], 2); ?></strong>

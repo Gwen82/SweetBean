@@ -1,83 +1,21 @@
 <?php
 require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/menu_repository.php';
 
-$menuItems = [
-    [
-        'name' => 'Classic Espresso',
-        'category' => 'Drinks',
-        'price' => 3.50,
-        'description' => 'A bold, smooth single shot with a caramel finish.',
-        'badge' => 'Best Seller',
-        'icon' => 'fa-mug-saucer',
-    ],
-    [
-        'name' => 'Vanilla Latte',
-        'category' => 'Drinks',
-        'price' => 4.75,
-        'description' => 'Steamed milk, espresso, and house vanilla syrup.',
-        'badge' => 'Customer Pick',
-        'icon' => 'fa-mug-hot',
-    ],
-    [
-        'name' => 'Iced Caramel Macchiato',
-        'category' => 'Drinks',
-        'price' => 5.25,
-        'description' => 'Chilled espresso layered with milk and caramel drizzle.',
-        'badge' => 'Best Seller',
-        'icon' => 'fa-glass-water',
-    ],
-    [
-        'name' => 'Mocha Frappe',
-        'category' => 'Drinks',
-        'price' => 5.50,
-        'description' => 'Blended coffee, cocoa, whipped cream, and chocolate.',
-        'badge' => 'Cold',
-        'icon' => 'fa-blender',
-    ],
-    [
-        'name' => 'Strawberry Shortcake',
-        'category' => 'Cakes',
-        'price' => 6.25,
-        'description' => 'Soft sponge cake with fresh strawberries and cream.',
-        'badge' => 'Fresh',
-        'icon' => 'fa-cake-candles',
-    ],
-    [
-        'name' => 'Chocolate Ganache Cake',
-        'category' => 'Cakes',
-        'price' => 6.75,
-        'description' => 'Rich chocolate layers finished with glossy ganache.',
-        'badge' => 'Best Seller',
-        'icon' => 'fa-cake-candles',
-    ],
-    [
-        'name' => 'Butter Croissant',
-        'category' => 'Pastries',
-        'price' => 3.25,
-        'description' => 'Flaky, golden pastry baked fresh each morning.',
-        'badge' => 'Baked Today',
-        'icon' => 'fa-cookie-bite',
-    ],
-    [
-        'name' => 'Cinnamon Roll',
-        'category' => 'Pastries',
-        'price' => 4.00,
-        'description' => 'Warm cinnamon swirl topped with vanilla glaze.',
-        'badge' => 'Warm',
-        'icon' => 'fa-bread-slice',
-    ],
-    [
-        'name' => 'Blueberry Muffin',
-        'category' => 'Pastries',
-        'price' => 3.75,
-        'description' => 'Tender muffin packed with blueberries and crumb topping.',
-        'badge' => 'Fresh',
-        'icon' => 'fa-cookie',
-    ],
-];
-
+$menuItems = sweetbean_get_menu_items($conn);
 $categories = array_values(array_unique(array_column($menuItems, 'category')));
 $isLoggedIn = isset($_SESSION['user_id']);
+$cartQuantities = [];
+$cartTotalQuantity = 0;
+
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $id => $details) {
+        $quantity = (int) ($details['qty'] ?? 0);
+        $cartQuantities[$id] = $quantity;
+        $cartTotalQuantity += $quantity;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -408,6 +346,43 @@ $isLoggedIn = isset($_SESSION['user_id']);
             background: var(--coffee-dark);
         }
 
+        .quantity-control {
+            display: inline-flex;
+            align-items: center;
+            overflow: hidden;
+            min-width: 112px;
+            height: 40px;
+            border: 1px solid rgba(90, 56, 37, 0.2);
+            border-radius: 8px;
+            background: #fff8ef;
+        }
+
+        .quantity-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border: 0;
+            background: transparent;
+            color: var(--coffee);
+            cursor: pointer;
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .quantity-btn:hover {
+            background: #f0e2d1;
+        }
+
+        .item-qty {
+            min-width: 34px;
+            color: var(--coffee-dark);
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
         .login-order-link {
             display: inline-flex;
             align-items: center;
@@ -441,6 +416,55 @@ $isLoggedIn = isset($_SESSION['user_id']);
             display: block;
         }
 
+        .checkout-box {
+            position: sticky;
+            bottom: 18px;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 28px;
+            padding: 16px 18px;
+            border: 1px solid rgba(90, 56, 37, 0.18);
+            border-radius: 8px;
+            background: #fffdf9;
+            box-shadow: 0 16px 34px rgba(70, 42, 25, 0.12);
+        }
+
+        .checkout-box.is-empty {
+            display: none;
+        }
+
+        .checkout-summary {
+            color: var(--coffee-dark);
+            font-weight: 700;
+        }
+
+        .checkout-summary span {
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .checkout-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 8px;
+            background: var(--coffee);
+            color: #fffaf4;
+            font-weight: 800;
+            text-decoration: none;
+            text-transform: capitalize;
+        }
+
+        .checkout-link:hover {
+            background: var(--coffee-dark);
+        }
+
         @media (max-width: 980px) {
             .menu-hero,
             .menu-tools {
@@ -467,6 +491,11 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
             .cart-strip {
                 align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .checkout-box {
+                align-items: stretch;
                 flex-direction: column;
             }
 
@@ -528,8 +557,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
             <section class="cart-strip <?php echo $isLoggedIn ? '' : 'auth-needed'; ?>" aria-live="polite">
                 <?php if ($isLoggedIn): ?>
-                    <span><strong id="cartCount">0</strong> item(s) selected for your order.</span>
-                    <a class="cart-strip-link" href="<?php echo BASE_URL; ?>customer/cart.php">View Cart</a>
+                    <span><strong id="cartCount"><?php echo $cartTotalQuantity; ?></strong> item(s) selected for your order.</span>
+                    <a class="cart-strip-link" href="<?php echo BASE_URL; ?>customer/customer_cart.php">View Cart</a>
                 <?php else: ?>
                     <span><strong>Login required.</strong> Please log in before adding menu items to your cart.</span>
                     <a class="cart-strip-link" href="<?php echo BASE_URL; ?>auth/login.php">Login</a>
@@ -538,7 +567,10 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
             <section class="menu-grid" id="menuGrid" aria-label="Sweet Bean menu items">
                 <?php foreach ($menuItems as $item): ?>
-                    <?php $itemId = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($item['name'])), '-'); ?>
+                    <?php
+                    $itemId = (string) $item['id'];
+                    $selectedQty = $cartQuantities[$itemId] ?? 0;
+                    ?>
                     <article
                         class="menu-card"
                         data-category="<?php echo htmlspecialchars($item['category']); ?>"
@@ -563,9 +595,15 @@ $isLoggedIn = isset($_SESSION['user_id']);
                             <div class="card-footer">
                                 <span class="price">$<?php echo number_format($item['price'], 2); ?></span>
                                 <?php if ($isLoggedIn): ?>
-                                    <button class="add-btn" type="button" aria-label="Add <?php echo htmlspecialchars($item['name']); ?> to cart">
-                                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                                    </button>
+                                    <div class="quantity-control" aria-label="Change quantity for <?php echo htmlspecialchars($item['name']); ?>">
+                                        <button class="quantity-btn decrease-btn" type="button" aria-label="Remove one <?php echo htmlspecialchars($item['name']); ?>">
+                                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                        </button>
+                                        <span class="item-qty" data-qty-for="<?php echo htmlspecialchars($itemId); ?>"><?php echo $selectedQty; ?></span>
+                                        <button class="quantity-btn increase-btn" type="button" aria-label="Add <?php echo htmlspecialchars($item['name']); ?>">
+                                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
                                 <?php else: ?>
                                     <a class="login-order-link" href="<?php echo BASE_URL; ?>auth/login.php">Login to order</a>
                                 <?php endif; ?>
@@ -576,6 +614,16 @@ $isLoggedIn = isset($_SESSION['user_id']);
             </section>
 
             <p class="empty-state" id="emptyState">No menu items match your search.</p>
+
+            <?php if ($isLoggedIn): ?>
+                <section class="checkout-box <?php echo $cartTotalQuantity > 0 ? '' : 'is-empty'; ?>" id="checkoutBox" aria-live="polite">
+                    <div class="checkout-summary">
+                        <span id="checkoutCount"><?php echo $cartTotalQuantity; ?></span> item(s) in your cart
+                        <span>Ready when you are.</span>
+                    </div>
+                    <a class="checkout-link" href="<?php echo BASE_URL; ?>customer/customer_cart.php">Go to checkout</a>
+                </section>
+            <?php endif; ?>
         </div>
     </main>
 
@@ -585,54 +633,65 @@ $isLoggedIn = isset($_SESSION['user_id']);
         const search = document.getElementById('menuSearch');
         const emptyState = document.getElementById('emptyState');
         const cartCount = document.getElementById('cartCount');
-        const cartStorageKey = 'sweetBeanCart';
+        const checkoutBox = document.getElementById('checkoutBox');
+        const checkoutCount = document.getElementById('checkoutCount');
+        const cartActionUrl = '<?php echo BASE_URL; ?>customer/cart_action.php';
         let activeFilter = 'All';
 
-        function getCart() {
-            try {
-                return JSON.parse(localStorage.getItem(cartStorageKey)) || [];
-            } catch (error) {
-                return [];
-            }
-        }
-
-        function saveCart(cart) {
-            localStorage.setItem(cartStorageKey, JSON.stringify(cart));
-            window.dispatchEvent(new Event('sweetBeanCartUpdated'));
-        }
-
-        function getCartQuantity(cart = getCart()) {
-            return cart.reduce((total, item) => total + Number(item.quantity || 0), 0);
+        function getCartQuantityFromPage() {
+            return [...document.querySelectorAll('.item-qty')]
+                .reduce((total, qtyNode) => total + Number(qtyNode.textContent || 0), 0);
         }
 
         function updateCartCount() {
+            const quantity = getCartQuantityFromPage();
+
             if (!cartCount) {
-                return;
+                return quantity;
             }
 
-            cartCount.textContent = getCartQuantity();
+            cartCount.textContent = quantity;
+
+            if (checkoutCount) {
+                checkoutCount.textContent = quantity;
+            }
+
+            if (checkoutBox) {
+                checkoutBox.classList.toggle('is-empty', quantity === 0);
+            }
+
+            window.dispatchEvent(new CustomEvent('sweetBeanCartUpdated', { detail: { count: quantity } }));
+            return quantity;
         }
 
-        function addToCart(card) {
-            const cart = getCart();
-            const existingItem = cart.find((item) => item.id === card.dataset.itemId);
+        function syncCartQuantities(cart) {
+            const quantities = new Map(cart.map((item) => [String(item.id), Number(item.qty || 0)]));
 
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({
-                    id: card.dataset.itemId,
-                    name: card.dataset.itemName,
-                    category: card.dataset.category,
-                    price: Number(card.dataset.itemPrice),
-                    description: card.dataset.itemDescription,
-                    icon: card.dataset.itemIcon,
-                    quantity: 1
-                });
-            }
+            document.querySelectorAll('.item-qty').forEach((qtyNode) => {
+                qtyNode.textContent = quantities.get(qtyNode.dataset.qtyFor) || 0;
+            });
+        }
 
-            saveCart(cart);
-            updateCartCount();
+        function updateCartItem(card, action) {
+            const formData = new FormData();
+            formData.append('item_id', card.dataset.itemId);
+            formData.append('action', action);
+
+            fetch(cartActionUrl, {
+                method: 'POST',
+                body: formData
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.success) {
+                        alert(data.message || 'Could not update your cart.');
+                        return;
+                    }
+
+                    syncCartQuantities(data.cart);
+                    updateCartCount();
+                })
+                .catch(() => alert('Could not update your cart. Please try again.'));
         }
 
         function renderMenu() {
@@ -667,9 +726,15 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
         search.addEventListener('input', renderMenu);
 
-        document.querySelectorAll('.add-btn').forEach((button) => {
+        document.querySelectorAll('.increase-btn').forEach((button) => {
             button.addEventListener('click', () => {
-                addToCart(button.closest('.menu-card'));
+                updateCartItem(button.closest('.menu-card'), 'increase');
+            });
+        });
+
+        document.querySelectorAll('.decrease-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                updateCartItem(button.closest('.menu-card'), 'decrease');
             });
         });
 

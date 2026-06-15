@@ -6,6 +6,13 @@ if(session_status() === PHP_SESSION_NONE){
 include_once __DIR__ . '/config.php';
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName = $_SESSION['user_name'] ?? 'Account';
+$cartCount = 0;
+
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $item) {
+        $cartCount += (int) ($item['qty'] ?? 0);
+    }
+}
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -164,7 +171,7 @@ $userName = $_SESSION['user_name'] ?? 'Account';
 
             <a href="<?php echo BASE_URL; ?>customer/customer_cart.php" class="cart-nav-link" aria-label="View cart">
                 <i class="fa-solid fa-bag-shopping"></i>
-                <span class="cart-badge" id="navbarCartCount">0</span>
+                <span class="cart-badge <?php echo $cartCount > 0 ? 'is-visible' : ''; ?>" id="navbarCartCount"><?php echo $cartCount; ?></span>
             </a>
 
             <?php if($isLoggedIn): ?>
@@ -199,29 +206,20 @@ $userName = $_SESSION['user_name'] ?? 'Account';
 <script>
     (function () {
         const badge = document.getElementById('navbarCartCount');
-        const cartStorageKey = 'sweetBeanCart';
 
         if (!badge) {
             return;
         }
 
-        function getCartCount() {
-            try {
-                const cart = JSON.parse(localStorage.getItem(cartStorageKey)) || [];
-                return cart.reduce((total, item) => total + Number(item.quantity || 0), 0);
-            } catch (error) {
-                return 0;
-            }
-        }
-
-        function renderBadge() {
-            const count = getCartCount();
+        function renderBadge(count) {
             badge.textContent = count;
             badge.classList.toggle('is-visible', count > 0);
         }
 
-        window.addEventListener('storage', renderBadge);
-        window.addEventListener('sweetBeanCartUpdated', renderBadge);
-        renderBadge();
+        window.addEventListener('sweetBeanCartUpdated', (event) => {
+            if (event.detail && typeof event.detail.count === 'number') {
+                renderBadge(event.detail.count);
+            }
+        });
     })();
 </script>
