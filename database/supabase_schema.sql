@@ -214,3 +214,36 @@ $$;
 
 create index if not exists order_items_order_id_idx
     on public.order_items (order_id);
+
+create table if not exists public.reviews (
+    id bigserial primary key,
+    user_id uuid references public.sweetbean_users(id) on delete set null,
+    order_id bigint references public.orders(id) on delete set null,
+    rating integer not null default 5 check (rating between 1 and 5),
+    comment text not null default '',
+    is_visible boolean not null default true,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+alter table public.reviews
+    add column if not exists user_id uuid,
+    add column if not exists order_id bigint,
+    add column if not exists rating integer not null default 5,
+    add column if not exists comment text not null default '',
+    add column if not exists is_visible boolean not null default true,
+    add column if not exists created_at timestamptz not null default now(),
+    add column if not exists updated_at timestamptz not null default now();
+
+create index if not exists reviews_user_id_idx
+    on public.reviews (user_id);
+
+create index if not exists reviews_order_id_idx
+    on public.reviews (order_id);
+
+drop trigger if exists set_reviews_updated_at on public.reviews;
+
+create trigger set_reviews_updated_at
+before update on public.reviews
+for each row
+execute function public.set_updated_at();

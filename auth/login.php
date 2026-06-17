@@ -33,7 +33,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_name'] = $logged_in_user['full_name'];
             $_SESSION['user_role'] = $logged_in_user['role'];
 
-            header("Location: ../customer/menu.php");
+            if ($logged_in_user['role'] === 'admin') {
+                header("Location: ../admin/dashboard.php");
+            } else {
+                header("Location: ../customer/menu.php");
+            }
             exit();
 
         } else {

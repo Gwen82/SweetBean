@@ -186,6 +186,12 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                             <i class="fa-regular fa-id-card"></i>
                             Profile
                         </a>
+                        <?php if(($_SESSION['user_role'] ?? '') === 'admin'): ?>
+                            <a href="<?php echo BASE_URL; ?>admin/dashboard.php">
+                                <i class="fa-solid fa-chart-line"></i>
+                                Admin
+                            </a>
+                        <?php endif; ?>
                         <a href="<?php echo BASE_URL; ?>auth/logout.php">
                             <i class="fa-solid fa-right-from-bracket"></i>
                             Logout
