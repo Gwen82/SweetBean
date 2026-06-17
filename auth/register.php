@@ -1,41 +1,6 @@
 <?php
 session_start();
-
-/*
-=================================================
-DATABASE TEMPLATE (ENABLE LATER)
-=================================================
-
-require_once 'db.php';
-
-INSERT INTO users (
-    name,
-    email,
-    phone,
-    birth_date,
-    password,
-    role
-)
-
-=================================================
-*/
-
-// Temporary User Storage
-if (!isset($_SESSION['mock_users'])) {
-
-    $_SESSION['mock_users'] = [
-
-        [
-            'id' => 1,
-            'name' => 'Admin',
-            'email' => 'admin@sweetbean.com',
-            'phone' => '0123456789',
-            'birth_date' => '2000-01-01',
-            'password' => 'admin123',
-            'role' => 'admin'
-        ]
-    ];
-}
+require_once "../config/db.php";
 
 $message = "";
 $message_type = "";
@@ -45,65 +10,79 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
-    $birth_date = $_POST['birth_date'];
+    $birthday = $_POST['birth_date'];
     $password = $_POST['password'];
 
     if (
         empty($name) ||
         empty($email) ||
         empty($phone) ||
-        empty($birth_date) ||
+        empty($birthday) ||
         empty($password)
     ) {
 
-        $message = "All fields are required!";
-        $message_type = "error";
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $message = "Please enter a valid email address.";
+        $message = "All fields are required.";
         $message_type = "error";
 
     } else {
 
-        $user_exists = false;
+        $check = mysqli_prepare(
+            $conn,
+            "SELECT id FROM user WHERE email = ? OR phone = ?"
+        );
 
-        foreach ($_SESSION['mock_users'] as $user) {
+        mysqli_stmt_bind_param(
+            $check,
+            "ss",
+            $email,
+            $phone
+        );
 
-            if (
-                $user['email'] === $email ||
-                $user['phone'] === $phone
-            ) {
+        mysqli_stmt_execute($check);
 
-                $user_exists = true;
-                break;
-            }
-        }
+        $result = mysqli_stmt_get_result($check);
 
-        if ($user_exists) {
+        if (mysqli_num_rows($result) > 0) {
 
-            $message = "This email or phone number is already registered.";
+            $message = "Email or phone already registered.";
             $message_type = "error";
 
         } else {
 
-            $new_user = [
+            $hashed_password = password_hash(
+                $password,
+                PASSWORD_DEFAULT
+            );
 
-                'id' => count($_SESSION['mock_users']) + 1,
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-                'birth_date' => $birth_date,
-                'password' => $password,
-                'role' => 'customer'
-            ];
+            $stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO user
+                (name,email,phone,birthday,password,role)
+                VALUES (?,?,?,?,?,'customer')"
+            );
 
-            $_SESSION['mock_users'][] = $new_user;
+            mysqli_stmt_bind_param(
+                $stmt,
+                "sssss",
+                $name,
+                $email,
+                $phone,
+                $birthday,
+                $hashed_password
+            );
 
-            $message = "Account created successfully! Redirecting to login...";
-            $message_type = "success";
+            if (mysqli_stmt_execute($stmt)) {
 
-            header("Refresh:2; url=login.php");
+                $message = "Account created successfully!";
+                $message_type = "success";
+
+                header("Refresh:2; url=login.php");
+
+            } else {
+
+                $message = "Registration failed.";
+                $message_type = "error";
+            }
         }
     }
 }

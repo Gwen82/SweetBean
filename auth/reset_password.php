@@ -6,27 +6,32 @@ $message_status = "";
 $message_type = "";
 $show_form = false;
 
-$token = $_GET['token'] ?? '';
-$email = strtolower(trim($_GET['email'] ?? ''));
+// Ambil token dan email baik dari GET (klik link) maupun POST (saat submit form)
+$token = $_REQUEST['token'] ?? '';
+$email = strtolower(trim($_REQUEST['email'] ?? ''));
 $user = null;
 
 if (empty($token) || empty($email)) {
     $message_status = "Invalid or expired reset link.";
     $message_type = "error";
 } else {
+    // DISESUAIKAN: Menggunakan MySQLi standar (bukan PDO)
+    // Silakan ganti 'user' menjadi 'sweetbean_users' jika itu nama tabel aslimu
     $stmt = $conn->prepare("
         SELECT id
-        FROM sweetbean_users
-        WHERE email = :email
-          AND reset_token = :reset_token
-          AND reset_token_expires_at > now()
+        FROM user
+        WHERE email = ?
+          AND reset_token = ?
+          AND reset_token_expires_at > NOW()
         LIMIT 1
     ");
-    $stmt->execute([
-        ':email' => $email,
-        ':reset_token' => hash('sha256', $token)
-    ]);
-    $user = $stmt->fetch();
+    
+    $hashedToken = hash('sha256', $token);
+    $stmt->bind_param("ss", $email, $hashedToken);
+    $stmt->execute();
+    
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
     if ($user) {
         $show_form = true;
@@ -36,6 +41,7 @@ if (empty($token) || empty($email)) {
     }
 }
 
+// Proses ganti password saat tombol ditekan
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
@@ -51,21 +57,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_status = "Passwords do not match. Please try again.";
         $message_type = "error";
     } else {
+        // DISESUAIKAN: Update menggunakan MySQLi
         $stmt = $conn->prepare("
-            UPDATE sweetbean_users
-            SET password = :password,
+            UPDATE user
+            SET password = ?,
                 reset_token = NULL,
                 reset_token_expires_at = NULL
-            WHERE id = :id
+            WHERE id = ?
         ");
-        $stmt->execute([
-            ':password' => password_hash($new_password, PASSWORD_DEFAULT),
-            ':id' => $user['id']
-        ]);
-
-        $message_status = "Success! Your password has been updated. You can now log in.";
-        $message_type = "success";
-        $show_form = false;
+        
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+        $stmt->bind_param("si", $hashed_password, $user['id']);
+        
+        if ($stmt->execute()) {
+            $message_status = "Success! Your password has been updated. You can now log in.";
+            $message_type = "success";
+            $show_form = false;
+        } else {
+            $message_status = "Something went wrong. Please try again later.";
+            $message_type = "error";
+        }
     }
 }
 ?>
@@ -102,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <?php if ($show_form): ?>
-            <form method="POST">
+            <form method="POST" action="reset_password.php?token=<?php echo urlencode($token); ?>&email=<?php echo urlencode($email); ?>">
                 <label>New Password</label>
                 <input type="password" name="new_password" placeholder="Minimum 6 characters" required>
 

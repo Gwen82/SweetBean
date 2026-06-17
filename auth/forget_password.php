@@ -24,13 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message_type = "error";
     } else {
         $stmt = $conn->prepare("
-            SELECT id
-            FROM sweetbean_users
-            WHERE email = :email
+            SELECT id 
+            FROM user
+            WHERE email = ?
             LIMIT 1
         ");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch();
+
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
 
         if ($user) {
             $token = bin2hex(random_bytes(16));
@@ -38,16 +42,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
             $reset_link = $scheme . '://' . $_SERVER['HTTP_HOST'] . $basePath . '/reset_password.php?token=' . urlencode($token) . '&email=' . urlencode($email);
 
+            $hashedToken = hash('sha256', $token);
+
             $stmt = $conn->prepare("
-                UPDATE sweetbean_users
-                SET reset_token = :reset_token,
-                    reset_token_expires_at = now() + interval '1 hour'
-                WHERE id = :id
+                UPDATE user
+                SET reset_token = ?,
+                    reset_token_expires_at = DATE_ADD(NOW(), INTERVAL 1 HOUR)
+                WHERE id = ?
             ");
-            $stmt->execute([
-                ':reset_token' => hash('sha256', $token),
-                ':id' => $user['id']
-            ]);
+
+            $stmt->bind_param(
+                "si",
+                $hashedToken,
+                $user['id']
+            );
+
+            $stmt->execute();
 
             $mail = new PHPMailer(true);
 

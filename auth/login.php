@@ -1,50 +1,73 @@
 <?php
-require_once __DIR__ . '/../config/session.php';
-require_once __DIR__ . '/../config/db.php';
+
+session_start();
+require_once "../config/db.php";
 
 $message = "";
 $message_type = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $login_input = trim($_POST['login_input'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $login_input = trim($_POST['login_input']);
+    $password = $_POST['password'];
 
-    if (empty($login_input) || empty($password)) {
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT *
+         FROM user
+         WHERE email = ?
+         OR phone = ?
+         LIMIT 1"
+    );
 
-        $message = "Please fill in all fields.";
-        $message_type = "error";
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ss",
+        $login_input,
+        $login_input
+    );
+
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $user = mysqli_fetch_assoc($result);
+
+    if (
+        $user &&
+        password_verify(
+            $password,
+            $user['password']
+        )
+    ) {
+
+        session_regenerate_id(true);
+
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['name'];
+        $_SESSION['user_role'] = $user['role'];
+
+        switch ($user['role']) {
+
+            case 'admin':
+                header("Location: ../admin/dashboard.php");
+                break;
+
+            case 'staff':
+                header("Location: ../staff/dashboard.php");
+                break;
+
+            default:
+                header("Location: ../customer/menu.php");
+                break;
+        }
+
+        exit();
 
     } else {
 
-        $stmt = $conn->prepare("
-            SELECT id, full_name, email, phone, password, role
-            FROM sweetbean_users
-            WHERE email = :login_input OR phone = :login_input
-            LIMIT 1
-        ");
-        $stmt->execute([':login_input' => $login_input]);
-        $logged_in_user = $stmt->fetch();
-
-        if ($logged_in_user && password_verify($password, $logged_in_user['password'])) {
-            session_regenerate_id(true);
-
-            $_SESSION['user_id'] = $logged_in_user['id'];
-            $_SESSION['user_name'] = $logged_in_user['full_name'];
-            $_SESSION['user_role'] = $logged_in_user['role'];
-
-            if ($logged_in_user['role'] === 'admin') {
-                header("Location: ../admin/dashboard.php");
-            } else {
-                header("Location: ../customer/menu.php");
-            }
-            exit();
-
-        } else {
-
-            $message = "Invalid Email/Phone Number or Password.";
-            $message_type = "error";
-        }
+        $message = "Invalid email/phone or password.";
+        $message_type = "error";
     }
 }
 ?>
